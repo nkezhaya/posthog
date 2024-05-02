@@ -3,8 +3,9 @@ defmodule Posthog.Client do
 
   def capture(event, params, timestamp) when is_bitstring(event) or is_atom(event) do
     body = build_event(event, params, timestamp)
+    headers = Map.new(params) |> Map.get(:additional_headers) |> headers()
 
-    post!("/capture", body)
+    post!("/capture", body, headers)
   end
 
   def batch(events) when is_list(events) do
@@ -15,14 +16,25 @@ defmodule Posthog.Client do
 
     body = %{batch: body}
 
-    post!("/capture", body)
+    post!("/capture", body, headers())
+  end
+
+  defp headers(), do: headers(nil)
+  defp headers(nil), do: [{"Content-Type", "application/json"}]
+  defp headers(additional_headers) do
+    Enum.reduce(
+      additional_headers,
+      headers(nil),
+      fn {header, val}, headers ->
+        [{header, val} | headers]
+      end)
   end
 
   defp build_event(event, properties, timestamp) do
-    %{event: to_string(event), properties: Map.new(properties), timestamp: timestamp}
+    %{event: to_string(event), properties: Map.drop(Map.new(properties),[:additional_headers]), timestamp: timestamp}
   end
 
-  defp post!(path, %{} = body) do
+  defp post!(path, %{} = body, headers) do
     body =
       body
       |> Map.put(:api_key, api_key())
@@ -31,7 +43,7 @@ defmodule Posthog.Client do
     api_url()
     |> URI.merge(path)
     |> URI.to_string()
-    |> :hackney.post([{"Content-Type", "application/json"}], body)
+    |> :hackney.post(headers, body)
     |> handle()
   end
 
