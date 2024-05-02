@@ -32,6 +32,12 @@ Capturing events:
 Posthog.capture("login", distinct_id: user.id)
 ```
 
+Specifying additional headers:
+
+```elixir
+Posthog.capture("login", [distinct_id: user.id], [headers: [{"x-forwarded-for", "127.0.0.1"}]])
+```
+
 Capturing multiple events:
 
 ```elixir
