@@ -21,14 +21,15 @@ defmodule Posthog do
       :ok
       iex> Posthog.capture("login", [distinct_id: user.id], DateTime.utc_now())
       :ok
+      iex> Posthog.capture("login", [distinct_id: user.id], [headers: [{"x-forwarded-for", "127.0.0.1"}]])
 
   """
   @typep result() :: {:ok, term()} | {:error, term()}
   @typep timestamp() :: DateTime.t() | NaiveDateTime.t() | String.t() | nil
 
-  @spec capture(atom() | String.t(), keyword() | map(), timestamp()) :: result()
-  defdelegate capture(event, params, timestamp \\ nil), to: Posthog.Client
+  @spec capture(atom() | String.t(), keyword() | map(), keyword() | timestamp()) :: result()
+  defdelegate capture(event, params, opts \\ nil), to: Posthog.Client
 
-  @spec batch(list(tuple())) :: result()
-  defdelegate batch(events), to: Posthog.Client
+  @spec batch(list(tuple()), keyword()) :: result()
+  defdelegate batch(events, opts \\ nil), to: Posthog.Client
 end

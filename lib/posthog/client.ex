@@ -1,13 +1,38 @@
 defmodule Posthog.Client do
   @moduledoc false
 
-  def capture(event, params, timestamp) when is_bitstring(event) or is_atom(event) do
-    body = build_event(event, params, timestamp)
-
-    post!("/capture", body)
+  defp headers(), do: headers(nil)
+  defp headers(nil), do: [{"Content-Type", "application/json"}]
+  defp headers(additional_headers) do
+    Enum.reduce(
+      additional_headers,
+      headers(nil),
+      fn header, headers ->
+        [header | headers]
+      end
+    )
   end
 
-  def batch(events) when is_list(events) do
+  def capture(event, params, opts) when is_list(opts) do
+    headers = Keyword.get(opts, :headers) |> headers()
+    body = build_event(event, params, Keyword.get(opts, :timestamp))
+
+    post!("/capture", body, headers)
+  end
+
+  def capture(event, params, timestamp) when is_bitstring(event) or is_atom(event) do
+    headers = headers()
+    body = build_event(event, params, timestamp)
+
+    post!("/capture", body, headers)
+  end
+
+  def batch(events, opts) when is_list(opts) do
+    headers = Keyword.get(opts, :headers) |> headers()
+    batch(events, opts, headers)
+  end
+  def batch(events, nil) when is_list(events), do: batch(events, nil, headers())
+  def batch(events, _opts, headers) do
     body =
       for {event, params, timestamp} <- events do
         build_event(event, params, timestamp)
@@ -15,14 +40,14 @@ defmodule Posthog.Client do
 
     body = %{batch: body}
 
-    post!("/capture", body)
+    post!("/capture", body, headers)
   end
 
   defp build_event(event, properties, timestamp) do
     %{event: to_string(event), properties: Map.new(properties), timestamp: timestamp}
   end
 
-  defp post!(path, %{} = body) do
+  defp post!(path, %{} = body, headers) do
     body =
       body
       |> Map.put(:api_key, api_key())
@@ -31,7 +56,7 @@ defmodule Posthog.Client do
     api_url()
     |> URI.merge(path)
     |> URI.to_string()
-    |> :hackney.post([{"Content-Type", "application/json"}], body)
+    |> :hackney.post(headers, body)
     |> handle()
   end
 
