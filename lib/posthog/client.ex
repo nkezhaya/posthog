@@ -43,6 +43,17 @@ defmodule Posthog.Client do
     post!("/capture", body, headers)
   end
 
+  def feature_flags(distinct_id, opts \\ []) do
+    headers = Keyword.get(opts, :headers) |> headers()
+    body = %{
+      distinct_id: distinct_id
+    }
+    case post!("/decide?v=3", body, headers) do
+      {:ok, %{body: %{"featureFlags" => flags}}} -> {:ok, flags}
+      resp -> resp
+    end
+  end
+
   defp build_event(event, properties, timestamp) do
     %{event: to_string(event), properties: Map.new(properties), timestamp: timestamp}
   end

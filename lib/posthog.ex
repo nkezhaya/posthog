@@ -32,4 +32,7 @@ defmodule Posthog do
 
   @spec batch(list(tuple()), keyword()) :: result()
   defdelegate batch(events, opts \\ nil), to: Posthog.Client
+
+  @spec feature_flags(term(), keyword()) :: result()
+  defdelegate feature_flags(distinct_id, opts \\ []), to: Posthog.Client
 end
