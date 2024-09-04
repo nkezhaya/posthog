@@ -27,6 +27,16 @@ defmodule Posthog.Client do
     post!("/capture", body, headers)
   end
 
+  def page(url, params, opts) when is_list(opts) do
+    params = Map.put(params, "$current_url", url)
+    capture("$pageview", params, opts)
+  end
+
+  def page(url) do
+    params = Map.put(%{}, "$current_url", url)
+    capture("$pageview", params, [])
+  end
+
   def batch(events, opts) when is_list(opts) do
     headers = Keyword.get(opts, :headers) |> headers()
     batch(events, opts, headers)
