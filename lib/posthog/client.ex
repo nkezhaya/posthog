@@ -1,5 +1,6 @@
 defmodule Posthog.Client do
   @moduledoc false
+  @app :posthog
 
   defp headers(additional_headers \\ []) do
     Enum.concat(additional_headers || [], [{"content-type", "application/json"}])
@@ -66,7 +67,7 @@ defmodule Posthog.Client do
   end
 
   defp api_url do
-    case Application.get_env(:posthog, :api_url) do
+    case Application.get_env(@app, :api_url) do
       url when is_bitstring(url) ->
         url
 
@@ -83,7 +84,7 @@ defmodule Posthog.Client do
   end
 
   defp api_key do
-    case Application.get_env(:posthog, :api_key) do
+    case Application.get_env(@app, :api_key) do
       key when is_bitstring(key) ->
         key
 
@@ -100,10 +101,10 @@ defmodule Posthog.Client do
   end
 
   defp json_library do
-    Application.get_env(:posthog, :json_library, Jason)
+    Application.get_env(@app, :json_library, Jason)
   end
 
   defp api_version do
-    Application.get_env(:posthog, :version, 3)
+    Application.get_env(@app, :version, 3)
   end
 end
