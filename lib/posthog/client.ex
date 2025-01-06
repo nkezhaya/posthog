@@ -1,35 +1,26 @@
 defmodule Posthog.Client do
   @moduledoc false
 
-    defp headers(additional_headers \\ []) do
+  defp headers(additional_headers \\ []) do
     Enum.concat(additional_headers || [], [{"content-type", "application/json"}])
   end
 
   def capture(event, params, opts) when is_list(opts) do
-        body = build_event(event, params, Keyword.get(opts, :timestamp))
-
-    post!("/capture", body, headers(opts[:headers]))
+    post!("/capture", build_event(event, params, opts[:timestamp]), headers(opts[:headers]))
   end
 
   def capture(event, params, timestamp) when is_bitstring(event) or is_atom(event) do
-        body = build_event(event, params, timestamp)
-
-    post!("/capture", body, headers())
+    post!("/capture", build_event(event, params, timestamp), headers())
   end
 
   def batch(events, opts) when is_list(opts) do
-        batch(events, opts, headers(opts[:headers]))
+    batch(events, opts, headers(opts[:headers]))
   end
 
   def batch(events, _opts, headers) do
-    body =
-      for {event, params, timestamp} <- events do
-        build_event(event, params, timestamp)
-      end
+    body = for {event, params, timestamp} <- events, do: build_event(event, params, timestamp)
 
-    body = %{batch: body}
-
-    post!("/capture", body, headers)
+    post!("/capture", %{batch: body}, headers)
   end
 
   defp build_event(event, properties, timestamp) do
