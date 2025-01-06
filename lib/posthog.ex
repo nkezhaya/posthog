@@ -27,9 +27,36 @@ defmodule Posthog do
   @typep result() :: {:ok, term()} | {:error, term()}
   @typep timestamp() :: DateTime.t() | NaiveDateTime.t() | String.t() | nil
 
+  alias Posthog.{Client, FeatureFlag}
+
   @spec capture(atom() | String.t(), keyword() | map(), keyword() | timestamp()) :: result()
-  defdelegate capture(event, params, opts \\ nil), to: Posthog.Client
+  defdelegate capture(event, params, opts \\ []), to: Client
 
   @spec batch(list(tuple()), keyword()) :: result()
-  defdelegate batch(events, opts \\ []), to: Posthog.Client
+  defdelegate batch(events, opts \\ []), to: Client
+
+  @spec feature_flags(binary(), keyword()) :: result()
+  defdelegate feature_flags(distinct_id, opts \\ []), to: Client
+
+  @spec feature_flag(binary(), binary(), keyword()) :: result()
+  def feature_flag(flag, distinct_id, opts \\ []) do
+    with {:ok, %{"featureFlags" => flags} = result} <- feature_flags(distinct_id, opts),
+         enabled when not is_nil(enabled) <- flags[flag] do
+      {:ok, FeatureFlag.new(flag, enabled, get_in(result, ["featureFlagPayloads", flag]))}
+    else
+      {:error, _} = err -> err
+      nil -> {:error, :not_found}
+    end
+  end
+
+  @spec feature_flag_enabled?(binary(), binary(), keyword()) :: boolean()
+  def feature_flag_enabled?(flag, distinct_id, opts \\ []) do
+    flag
+    |> feature_flag(distinct_id, opts)
+    |> case do
+      {:ok, %FeatureFlag{enabled: false}} -> false
+      {:ok, %FeatureFlag{}} -> true
+      _ -> false
+    end
+  end
 end
