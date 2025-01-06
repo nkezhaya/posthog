@@ -35,6 +35,7 @@ defmodule Posthog.Client do
 
     api_url()
     |> URI.merge(path)
+    |> URI.append_query("v=#{api_version()}")
     |> URI.to_string()
     |> :hackney.post(headers, body)
     |> handle()
@@ -100,5 +101,9 @@ defmodule Posthog.Client do
 
   defp json_library() do
     Application.get_env(:posthog, :json_library, Jason)
+  end
+
+  defp api_version do
+    Application.get_env(:posthog, :version, 3)
   end
 end
