@@ -65,7 +65,7 @@ defmodule Posthog.Client do
     end
   end
 
-  defp api_url() do
+  defp api_url do
     case Application.get_env(:posthog, :api_url) do
       url when is_bitstring(url) ->
         url
@@ -82,7 +82,7 @@ defmodule Posthog.Client do
     end
   end
 
-  defp api_key() do
+  defp api_key do
     case Application.get_env(:posthog, :api_key) do
       key when is_bitstring(key) ->
         key
@@ -99,7 +99,7 @@ defmodule Posthog.Client do
     end
   end
 
-  defp json_library() do
+  defp json_library do
     Application.get_env(:posthog, :json_library, Jason)
   end
 
