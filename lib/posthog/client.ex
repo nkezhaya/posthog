@@ -24,6 +24,29 @@ defmodule Posthog.Client do
     post!("/capture", %{batch: body}, headers)
   end
 
+  def feature_flags(distinct_id, opts) do
+    body =
+      opts
+      |> Keyword.take(~w[groups group_properties person_properties]a)
+      |> Enum.reduce(%{distinct_id: distinct_id}, fn {k, v}, map -> Map.put(map, k, v) end)
+
+    case post!("/decide", body, headers(opts[:headers])) do
+      {:ok, %{body: body}} ->
+        flag_fields =
+          body
+          |> Map.take(~w[featureFlags featureFlagPayloads])
+          |> Map.update!(
+            "featureFlagPayloads",
+            &Enum.reduce(&1, %{}, fn {k, v}, map -> Map.put(map, k, Jason.decode!(v)) end)
+          )
+
+        {:ok, flag_fields}
+
+      err ->
+        err
+    end
+  end
+
   defp build_event(event, properties, timestamp) do
     %{event: to_string(event), properties: Map.new(properties), timestamp: timestamp}
   end
