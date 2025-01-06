@@ -31,5 +31,5 @@ defmodule Posthog do
   defdelegate capture(event, params, opts \\ nil), to: Posthog.Client
 
   @spec batch(list(tuple()), keyword()) :: result()
-  defdelegate batch(events, opts \\ nil), to: Posthog.Client
+  defdelegate batch(events, opts \\ []), to: Posthog.Client
 end

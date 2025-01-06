@@ -31,7 +31,7 @@ defmodule Posthog.Client do
     headers = Keyword.get(opts, :headers) |> headers()
     batch(events, opts, headers)
   end
-  def batch(events, nil) when is_list(events), do: batch(events, nil, headers())
+
   def batch(events, _opts, headers) do
     body =
       for {event, params, timestamp} <- events do
