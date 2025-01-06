@@ -32,7 +32,7 @@ defmodule Posthog.Client do
     body =
       body
       |> Map.put(:api_key, api_key())
-      |> json_library().encode!()
+      |> encode(json_library())
 
     api_url()
     |> URI.merge(path)
@@ -99,6 +99,9 @@ defmodule Posthog.Client do
         """
     end
   end
+
+  defp encode(data, Jason), do: Jason.encode_to_iodata!(data)
+  defp encode(data, library), do: library.encode!(data)
 
   defp json_library do
     Application.get_env(@app, :json_library, Jason)
