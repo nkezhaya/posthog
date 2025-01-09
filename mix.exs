@@ -35,8 +35,8 @@ defmodule Posthog.MixProject do
 
   defp deps do
     [
-      {:hackney, "~> 1.10"},
-      {:jason, "~> 1.2", optional: true},
+      {:hackney, "~> 1.20"},
+      {:jason, "~> 1.4", optional: true},
       {:ex_doc, ">= 0.0.0", only: [:doc]}
     ]
   end

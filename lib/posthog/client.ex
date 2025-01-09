@@ -1,46 +1,50 @@
 defmodule Posthog.Client do
   @moduledoc false
+  @app :posthog
 
-  defp headers(), do: headers(nil)
-  defp headers(nil), do: [{"Content-Type", "application/json"}]
-  defp headers(additional_headers) do
-    Enum.reduce(
-      additional_headers,
-      headers(nil),
-      fn header, headers ->
-        [header | headers]
-      end
-    )
+  defp headers(additional_headers \\ []) do
+    Enum.concat(additional_headers || [], [{"content-type", "application/json"}])
   end
 
   def capture(event, params, opts) when is_list(opts) do
-    headers = Keyword.get(opts, :headers) |> headers()
-    body = build_event(event, params, Keyword.get(opts, :timestamp))
-
-    post!("/capture", body, headers)
+    post!("/capture", build_event(event, params, opts[:timestamp]), headers(opts[:headers]))
   end
 
   def capture(event, params, timestamp) when is_bitstring(event) or is_atom(event) do
-    headers = headers()
-    body = build_event(event, params, timestamp)
-
-    post!("/capture", body, headers)
+    post!("/capture", build_event(event, params, timestamp), headers())
   end
 
   def batch(events, opts) when is_list(opts) do
-    headers = Keyword.get(opts, :headers) |> headers()
-    batch(events, opts, headers)
+    batch(events, opts, headers(opts[:headers]))
   end
-  def batch(events, nil) when is_list(events), do: batch(events, nil, headers())
+
   def batch(events, _opts, headers) do
+    body = for {event, params, timestamp} <- events, do: build_event(event, params, timestamp)
+
+    post!("/capture", %{batch: body}, headers)
+  end
+
+  def feature_flags(distinct_id, opts) do
     body =
-      for {event, params, timestamp} <- events do
-        build_event(event, params, timestamp)
-      end
+      opts
+      |> Keyword.take(~w[groups group_properties person_properties]a)
+      |> Enum.reduce(%{distinct_id: distinct_id}, fn {k, v}, map -> Map.put(map, k, v) end)
 
-    body = %{batch: body}
+    case post!("/decide", body, headers(opts[:headers])) do
+      {:ok, %{body: body}} ->
+        flag_fields =
+          body
+          |> Map.take(~w[featureFlags featureFlagPayloads])
+          |> Map.update!(
+            "featureFlagPayloads",
+            &Enum.reduce(&1, %{}, fn {k, v}, map -> Map.put(map, k, Jason.decode!(v)) end)
+          )
 
-    post!("/capture", body, headers)
+        {:ok, flag_fields}
+
+      err ->
+        err
+    end
   end
 
   defp build_event(event, properties, timestamp) do
@@ -51,10 +55,11 @@ defmodule Posthog.Client do
     body =
       body
       |> Map.put(:api_key, api_key())
-      |> json_library().encode!()
+      |> encode(json_library())
 
     api_url()
     |> URI.merge(path)
+    |> URI.append_query("v=#{api_version()}")
     |> URI.to_string()
     |> :hackney.post(headers, body)
     |> handle()
@@ -84,8 +89,8 @@ defmodule Posthog.Client do
     end
   end
 
-  defp api_url() do
-    case Application.get_env(:posthog, :api_url) do
+  defp api_url do
+    case Application.get_env(@app, :api_url) do
       url when is_bitstring(url) ->
         url
 
@@ -101,8 +106,8 @@ defmodule Posthog.Client do
     end
   end
 
-  defp api_key() do
-    case Application.get_env(:posthog, :api_key) do
+  defp api_key do
+    case Application.get_env(@app, :api_key) do
       key when is_bitstring(key) ->
         key
 
@@ -118,7 +123,14 @@ defmodule Posthog.Client do
     end
   end
 
-  defp json_library() do
-    Application.get_env(:posthog, :json_library, Jason)
+  defp encode(data, Jason), do: Jason.encode_to_iodata!(data)
+  defp encode(data, library), do: library.encode!(data)
+
+  defp json_library do
+    Application.get_env(@app, :json_library, Jason)
+  end
+
+  defp api_version do
+    Application.get_env(@app, :version, 3)
   end
 end
