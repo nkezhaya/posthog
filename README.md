@@ -9,7 +9,7 @@ The package can be installed by adding `posthog` to your list of dependencies in
 ```elixir
 def deps do
   [
-    {:posthog, "~> 0.2"}
+    {:posthog, "~> 0.3"}
   ]
 end
 ```
